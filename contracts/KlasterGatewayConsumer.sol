@@ -129,11 +129,7 @@ contract KlasterGatewayConsumer {
                 the cross-chain call by visiting https://ccip.chain.link/ and pasting your
                 transaction hash obtained by executing this function.
     */
-    function burnTokenOnArbitrum(
-        uint64[] memory targetChainSelectors, // set to the same chain selector as the one in step 3
-        string memory gatewayWalletSalt, // gateway wallet salt used in steps 2 & 3
-        address tokenAddress // deployed in step 3 and computed using the precomputeTokenAddress() function
-    ) external {
+    function burnTokenOnArbitrum() external {
 
         // make sure STEP 2 (token deployment) was executed before burning
         require(DEPLOYED_TOKEN_ADDRESS != address(0), "Token not deployed. Execute STEP-2 first.");
@@ -148,20 +144,20 @@ contract KlasterGatewayConsumer {
         // calculate Klaster Gateway fee
         uint256 fees = GATEWAY.calculateExecuteFee(
             msg.sender,
-            targetChainSelectors,
-            gatewayWalletSalt,
-            tokenAddress,           // address of the token we're interacting with on the remote chain
-            0,                      // value is 0 (no value transfer)
-            executePayload,         // function we want to execute on the remote chain (transfer 1 token)
-            2_000_000,              // safe gas limit
-            0x0                     // extraData param not used
+            DEST_CHAIN_SELECTOR,
+            GATEWAY_SALT,
+            DEPLOYED_TOKEN_ADDRESS,     // address of the token we're interacting with on the remote chain
+            0,                          // value is 0 (no value transfer)
+            executePayload,             // function we want to execute on the remote chain (transfer 1 token)
+            2_000_000,                  // safe gas limit
+            0x0                         // extraData param not used
         );
 
         // after calculating fees, execute the call with the same data
         GATEWAY.execute{value: fees}( // Klaster protocol fees. Must be calculated & sent for the call to succeed
-            targetChainSelectors,
-            gatewayWalletSalt,
-            tokenAddress,
+            DEST_CHAIN_SELECTOR,
+            GATEWAY_SALT,
+            DEPLOYED_TOKEN_ADDRESS,
             0,
             executePayload,
             2_000_000,
