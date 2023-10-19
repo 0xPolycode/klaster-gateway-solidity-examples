@@ -10,124 +10,143 @@ import "https://github.com/0xPolycode/klaster-gateway-solidity-examples/blob/mas
     Deploy this contract to any testnet chain and then start calling functions to execute
     cross-chain actions from your Klaster generated cross-chain wallet.
 
-    We recommend deploying this contract to Optimism Görli as you can easily acquire test coins on their faucet
-    here: https://faucet.quicknode.com/optimism/goerli . 
-    Test coins must be sent to this contract address as the contract has to pay for Klaster fees when executing cross-chain interactions.
+    We recommend deploying this contract to Optimism Görli as you can easily acquire test coins
+    on their faucet. here: https://faucet.quicknode.com/optimism/goerli . 
+    Test coins must be sent to this contract address as the contract has to
+    pay for Klaster fees when executing cross-chain interactions.
     
     NOTE: We recommend sending at least 0.01 test ETH to this contract after deploying on Optimism Görli. 
-    Then for interacting cross chain, we recommend sending messages to Arbitrum Görli (chain selector: 6101244977088475029)
-    as the messages are relatively cheap and you will be able to test everything out.
+    Functions are implemented to send messages to Arbitrum Görli (chain selector: 6101244977088475029).
+    That's because the messages from Optimism Görli to Arbitrum Görli are relatively cheap and you will
+    be able to test everything out.
 */
 contract KlasterGatewayConsumer {
    
     /**
-       STEP 1: Connection to the official Klaster Gateway testnet instance obtained!
+       CONFIG PARAMETERS
     */
-    IKlasterGatewaySingleton public TESTNET_GATEWAY = IKlasterGatewaySingleton(
+
+    // klaster gateway testnet instance
+    IKlasterGatewaySingleton public GATEWAY = IKlasterGatewaySingleton(
         0xdfF6fe22EACd7c3c4c9C3c9E9f9915026bBD98F1
     );
 
+    // salt used for klaster wallet computation
+    string public GATEWAY_SALT = "salt";
+
+    // test token data
+    string public TOKEN_NAME = "Test Token";
+    string public TOKEN_SYMBOL = "TT";
+    string public TOKEN_CREATE2_SALT = "random salt";
+
+    // target chain selector (arbitrum goerli)
+    uint64[] public DEST_CHAIN_SELECTOR = [ 6101244977088475029 ]; // store as a list as defined by gateway
+
+    // deployed token address holder
+    address public DEPLOYED_TOKEN_ADDRESS;
+
     /**
-       STEP 2: Precomputes you Klaster Gateway address by providing your wallet which is funded with
-               test coins, and a salt of your choice (for example, "my first wallet").
-               Call this function after deploying the contract to check the value of your precomputed
-               cross-chain address.
+        STEP 1: Call this function to see what's your generated klaster gateway address.
+                This address is built from master wallet (this contract) & random salt string ("SALT").
+                This means only **this** contract can get control of the generated address(es).
+
+                This address is a precomputed static call. It exists by default and is ready to be used
+                without any state change or activation.
     */
-    function generateAddressExample(string memory salt) external view returns (address) {
-        return TESTNET_GATEWAY.calculateAddress(msg.sender, salt);
+    function precomputeKlasterGatewayAddress() external view returns (address) {
+        return GATEWAY.calculateAddress(address(this), GATEWAY_SALT);
     }
 
     /**
-       STEP 3: Call this function to deploy a new ERC20 Token using the generated cross-chain wallet.
-               Provide the salt of the wallet you're deploying from (the same as in step 2),
-               and the target chain selector (6101244977088475029 for arbitrum görli) where the token 
-               will be deployed at. You can find all the chain selectors at the docs:
+       STEP 2: Call this function to deploy a new ERC20 Token to a target chain (Arbitrum in this case)
+               using the klaster gateway wallet.
                
-               https://klaster.gitbook.io/gateway/introduction/supported-chains#chain-selectors
-
-               NOTE 1: You need to fund this contract with some native coins (MATIC if on polygon)
+               NOTE 1: You need to fund this contract with some native coins (test ETH on optimism goerli)
                        in order for the call to succeed. As you can see in the implementation function,
                        we need to precompute protocol fees and send that value when executing Klaster
                        Gateway transaction or else the call will fail. This contract needs to hold
                        sufficient amount of native coins at its balance to be able to pay for fees.
 
-               NOTE 2: Token will be deployed using the create2 method, so you also need to provide 
-                       a random string used for salt, as the last aprameter.
-                       To precompute an address of the token, call the precomputeTokenAddress(),
-                       we will use this address in step 4.
+               NOTE 2: Token will be deployed using the create2 method (klaster gateway supports this).
+                       Therefore, token's address can be precomputed. Call the precomputeTokenAddress() to
+                       check where the token is going to be deployed on the Arbitrum Görli.
 
                NOTE 3: Once you execute this function successfully, you can monitor the status of
                        the cross-chain call by visiting https://ccip.chain.link/ and pasting your
                        transaction hash obtained by executing this function.
     */
-    function deployTokenExample(
-        uint64[] memory targetChainSelectors,
-        string memory gatewayWalletSalt,
-        string memory tokenName,
-        string memory tokenSymbol,
-        string memory create2Salt
-    ) external {
-        uint256 fees = TESTNET_GATEWAY.calculateExecuteFee(
-            msg.sender,
-            targetChainSelectors,
-            gatewayWalletSalt,
-            address(0),                                 // set to 0x0 for contract deployment
-            0,                                          // value is 0 (no value transfer)
-            _getBytecodeERC20(tokenName, tokenSymbol),  // fetches the bytecode of the contract implementation together with constructor params
-            2_000_000,                                  // safe gas limit
-            keccak256(abi.encode(create2Salt))          // salt used to deploy contract with create2
+    function deployTokenToArbitrum() external {
+
+        // calculate Klaster Gateway fee
+        uint256 fees = GATEWAY.calculateExecuteFee(
+            address(this),
+            DEST_CHAIN_SELECTOR,
+            GATEWAY_SALT,
+            address(0),                                        // set to 0x0 for contract deployment
+            0,                                                 // value is 0 (no value transfer)
+            _getBytecodeERC20(TOKEN_NAME, TOKEN_SYMBOL),       // fetches the bytecode of the contract implementation together with constructor params
+            2_000_000,                                         // safe gas limit
+            keccak256(abi.encode(TOKEN_CREATE2_SALT))          // salt used to deploy contract with create2
         );
 
         // after calculating fees, execute the call with the same data
-        TESTNET_GATEWAY.execute{value: fees}( // Klaster protocol fees. Must be calculated & sent for the call to succeed
-            targetChainSelectors,
-            gatewayWalletSalt,
+        (bool success,,) = GATEWAY.execute{value: fees}( // Klaster protocol fees. Must be calculated & sent for the call to succeed
+            DEST_CHAIN_SELECTOR,
+            GATEWAY_SALT,
             address(0),
             0,
-            _getBytecodeERC20(tokenName, tokenSymbol),
+            _getBytecodeERC20(TOKEN_NAME, TOKEN_SYMBOL),
             2_000_000,
-            keccak256(abi.encode(create2Salt))
+            keccak256(abi.encode(TOKEN_CREATE2_SALT))
         );
+
+        // require operation success
+        require(success, "Gateway operation failed.");
+
+        // save the deployed token address
+        DEPLOYED_TOKEN_ADDRESS = precomputeTokenAddress();
     }
-    function precomputeTokenAddress(
-        string memory gatewayWalletSalt,
-        string memory tokenName,
-        string memory tokenSymbol,
-        string memory create2Salt
-    ) external view returns (address) {
-        return TESTNET_GATEWAY.calculateCreate2Address(
-            msg.sender,
-            gatewayWalletSalt,
-            _getBytecodeERC20(tokenName, tokenSymbol),
-            keccak256(abi.encode(create2Salt))
+
+    function precomputeTokenAddress() public view returns (address) {
+        return GATEWAY.calculateCreate2Address(
+            address(this),
+            GATEWAY_SALT,
+            _getBytecodeERC20(TOKEN_NAME, TOKEN_SYMBOL),
+            keccak256(abi.encode(TOKEN_CREATE2_SALT))
         );
     }
 
     /**
-        STEP 4: Once we deployed a token on a destination chain successfully, 100 tokens were minted on the
-                destination chain to the deployer wallet (klaster gateway generated subwallet).
-                We will now show how to move 1 token from this subwallet to address(0), by triggering
-                the process through the klaster gateway.
+        STEP 3: Once we deployed a token on a destination chain successfully, 100 tokens were minted on the
+                destination chain to the klaster gateway wallet controlled by this contract.
+                This is something you can verify by inspecting the STEP-2 transaction hash on the CCIP explorer.
 
-                We will use the same cross-chain wallet salt (used in steps 2 & 3).
-                The token address we deployed must be fetched by calling the precomputeTokenAddress() function,
-                as we will use this address to execute the transfer function remotely on the token.
+                We will now show how to move 1 token from the klaster gateway wallet to address(0),
+                or in other words "burn token", on arbitrum görli, by triggering the process through
+                the klaster gateway.
 
                 NOTE: Once you execute this function successfully, you can monitor the status of
                 the cross-chain call by visiting https://ccip.chain.link/ and pasting your
                 transaction hash obtained by executing this function.
     */
-    function burnOneTokenExample(
+    function burnTokenOnArbitrum(
         uint64[] memory targetChainSelectors, // set to the same chain selector as the one in step 3
         string memory gatewayWalletSalt, // gateway wallet salt used in steps 2 & 3
         address tokenAddress // deployed in step 3 and computed using the precomputeTokenAddress() function
     ) external {
-        bytes memory executePayload = abi.encodeWithSignature( // first we encode the transfer token data
-            "transfer(address,uint256)",                       // to burn 1 token (send it to address 0)
-            address(0),     // receiver is address(0)
-            1 * 10e18       // amount = 1 token (10e18 in wei)
+
+        // make sure STEP 2 (token deployment) was executed before burning
+        require(DEPLOYED_TOKEN_ADDRESS != address(0), "Token not deployed. Execute STEP-2 first.");
+
+        // encode ERC20 transfer function
+        bytes memory executePayload = abi.encodeWithSignature(
+            "transfer(address,uint256)",    // function signature
+            address(0),                     // receiver is address(0)
+            1 * 10e18                       // amount = 1 token (10e18 in wei)
         );
-        uint256 fees = TESTNET_GATEWAY.calculateExecuteFee(
+
+        // calculate Klaster Gateway fee
+        uint256 fees = GATEWAY.calculateExecuteFee(
             msg.sender,
             targetChainSelectors,
             gatewayWalletSalt,
@@ -139,7 +158,7 @@ contract KlasterGatewayConsumer {
         );
 
         // after calculating fees, execute the call with the same data
-        TESTNET_GATEWAY.execute{value: fees}( // Klaster protocol fees. Must be calculated & sent for the call to succeed
+        GATEWAY.execute{value: fees}( // Klaster protocol fees. Must be calculated & sent for the call to succeed
             targetChainSelectors,
             gatewayWalletSalt,
             tokenAddress,
