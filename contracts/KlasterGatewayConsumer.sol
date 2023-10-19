@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.20;
+pragma solidity 0.8.19;
 
 import "https://github.com/0xPolycode/klaster-gateway-solidity-examples/blob/master/contracts/IKlasterGatewaySingleton.sol";
 import "https://github.com/0xPolycode/klaster-gateway-solidity-examples/blob/master/contracts/TestERC20.sol";
@@ -11,7 +11,7 @@ import "https://github.com/0xPolycode/klaster-gateway-solidity-examples/blob/mas
     cross-chain actions from your Klaster generated cross-chain wallet.
 
     We recommend deploying this contract to Mumbai as you can easily acquire test coins on their faucet
-    here: https://faucet.polygon.technology/ . Test coins must be sent to this contract address
+    here: https://faucet.quicknode.com/polygon/mumbai . Test coins must be sent to this contract address
     as the contract has to pay for Klaster fees when executing cross-chain interactions.
 
     Follow the steps below.
