@@ -10,11 +10,13 @@ import "https://github.com/0xPolycode/klaster-gateway-solidity-examples/blob/mas
     Deploy this contract to any testnet chain and then start calling functions to execute
     cross-chain actions from your Klaster generated cross-chain wallet.
 
-    We recommend deploying this contract to Mumbai as you can easily acquire test coins on their faucet
-    here: https://faucet.quicknode.com/polygon/mumbai . Test coins must be sent to this contract address
-    as the contract has to pay for Klaster fees when executing cross-chain interactions.
-
-    Follow the steps below.
+    We recommend deploying this contract to Optimism Görli as you can easily acquire test coins on their faucet
+    here: https://faucet.quicknode.com/optimism/goerli . 
+    Test coins must be sent to this contract address as the contract has to pay for Klaster fees when executing cross-chain interactions.
+    
+    NOTE: We recommend sending at least 0.01 test ETH to this contract after deploying on Optimism Görli. 
+    Then for interacting cross chain, we recommend sending messages to Arbitrum Görli (chain selector: 6101244977088475029)
+    as the messages are relatively cheap and you will be able to test everything out.
 */
 contract KlasterGatewayConsumer {
    
@@ -38,8 +40,8 @@ contract KlasterGatewayConsumer {
     /**
        STEP 3: Call this function to deploy a new ERC20 Token using the generated cross-chain wallet.
                Provide the salt of the wallet you're deploying from (the same as in step 2),
-               and the target chain selector where the token will be deployed at.
-               You can find chain selectors at the docs:
+               and the target chain selector (6101244977088475029 for arbitrum görli) where the token 
+               will be deployed at. You can find all the chain selectors at the docs:
                
                https://klaster.gitbook.io/gateway/introduction/supported-chains#chain-selectors
 
