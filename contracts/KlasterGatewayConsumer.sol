@@ -89,6 +89,12 @@ contract KlasterGatewayConsumer {
             keccak256(abi.encode(TOKEN_CREATE2_SALT))          // salt used to deploy contract with create2
         );
 
+        // check if contract balance is enough to execute Klaster call
+        require(
+            address(this).balance >= fees,
+            "Insufficient funds. Send more test ETH to this contract to execute Klaster Gateway call."
+        );
+
         // after calculating fees, execute the call with the same data
         (bool success,,) = GATEWAY.execute{value: fees}( // Klaster protocol fees. Must be calculated & sent for the call to succeed
             DEST_CHAIN_SELECTOR,
@@ -132,7 +138,7 @@ contract KlasterGatewayConsumer {
     function burnTokenOnArbitrum() external {
 
         // make sure STEP 2 (token deployment) was executed before burning
-        require(DEPLOYED_TOKEN_ADDRESS != address(0), "Token not deployed. Execute STEP-2 first.");
+        require(DEPLOYED_TOKEN_ADDRESS != address(0), "Token not deployed. Deploy token first.");
 
         // encode ERC20 transfer function
         bytes memory executePayload = abi.encodeWithSignature(
@@ -151,6 +157,12 @@ contract KlasterGatewayConsumer {
             executePayload,             // function we want to execute on the remote chain (transfer 1 token)
             2_000_000,                  // safe gas limit
             0x0                         // extraData param not used
+        );
+
+        // check if contract balance is enough to execute Klaster call
+        require(
+            address(this).balance >= fees,
+            "Insufficient funds. Send more test ETH to this contract to execute Klaster Gateway call."
         );
 
         // after calculating fees, execute the call with the same data
