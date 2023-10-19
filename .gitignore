@@ -22,3 +22,5 @@ node_modules
 # Hardhat
 artifacts
 typechain-types
+
+.deps
