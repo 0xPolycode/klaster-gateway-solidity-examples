@@ -2,7 +2,7 @@
 
 pragma solidity 0.8.19;
 
-import "./IKlasterGatewaySingleton.sol";
+import "https://github.com/0xPolycode/klaster-gateway-solidity-examples/blob/master/contracts/IKlasterGatewaySingleton.sol";
 
 /**
     Example contract showing how easy it is to ingetrate with the Klaster Gateway contract.
