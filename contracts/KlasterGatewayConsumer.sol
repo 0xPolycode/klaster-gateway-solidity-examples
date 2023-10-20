@@ -141,7 +141,7 @@ contract KlasterGatewayConsumer {
         require(DEPLOYED_TOKEN_ADDRESS != address(0), "Token not deployed. Deploy token first.");
 
         // encode ERC20 transfer function
-        uint256 burnAmount = 10e18; // 1 token
+        uint256 burnAmount = 1e18; // 1 token
         address burnAddress = 0x000000000000000000000000000000000000dEaD; // dead address
         bytes memory executePayload = abi.encodeWithSignature(
             "transfer(address,uint256)",    // transfer function signature
