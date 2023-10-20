@@ -59,7 +59,7 @@ contract KlasterGatewayBatchDeployer {
         string memory tokenName,
         string memory tokenSymbol,
         string memory create2Salt
-    ) {
+    ) external {
 
         // calculate Klaster Gateway fee
         uint256 fees = getBatchDeployFee(tokenName, tokenSymbol, create2Salt);
