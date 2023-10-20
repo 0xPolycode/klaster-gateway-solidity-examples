@@ -141,15 +141,17 @@ contract KlasterGatewayConsumer {
         require(DEPLOYED_TOKEN_ADDRESS != address(0), "Token not deployed. Deploy token first.");
 
         // encode ERC20 transfer function
+        uint256 burnAmount = 10e18; // 1 token
+        address burnAddress = 0x000000000000000000000000000000000000dEaD; // dead address
         bytes memory executePayload = abi.encodeWithSignature(
-            "transfer(address,uint256)",    // function signature
-            address(0),                     // receiver is address(0)
-            1 * 10e18                       // amount = 1 token (10e18 in wei)
+            "transfer(address,uint256)",    // transfer function signature
+            burnAddress,
+            burnAmount
         );
 
         // calculate Klaster Gateway fee
         uint256 fees = GATEWAY.calculateExecuteFee(
-            msg.sender,
+            address(this),
             DEST_CHAIN_SELECTOR,
             GATEWAY_SALT,
             DEPLOYED_TOKEN_ADDRESS,     // address of the token we're interacting with on the remote chain
